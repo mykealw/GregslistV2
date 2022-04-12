@@ -14101,4 +14101,8 @@ main {
   flex-grow: 1;
 }
 
+.uppercase {
+  text-transform: capitalize;
+}
+
 /*# sourceMappingURL=main.css.map */

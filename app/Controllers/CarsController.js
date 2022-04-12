@@ -1,7 +1,7 @@
-import { ProxyState } from "../AppState.js";
-import { getCarform } from "../components/CarForm.js";
-import { carsService } from "../Services/CarsService.js";
-import { Pop } from "../Utils/Pop.js";
+import { ProxyState } from "../AppState.js"
+import { getCarform } from "../components/CarForm.js"
+import { carsService } from "../Services/CarsService.js"
+import { Pop } from "../Utils/Pop.js"
 
 function _drawCars() {
   let carsCardsTemplate = ''
@@ -18,14 +18,23 @@ function _drawCars() {
   document.getElementById('add-listing-modal-label').innerText = 'Add Car 🚗'
 }
 
+async function _getAllCars() {
+  try {
+    await carsService.getAllCars()
+  } catch (error) {
+    console.error(error)
+    Pop.toast(error.message, 'error')
+  }
+}
+
 export class CarsController {
   //  Do I want to do anything on page load?
   constructor() {
     ProxyState.on('cars', _drawCars)
-    _drawCars()
+    _getAllCars()
   }
 
-  addCar() {
+  async handleSubmit(id) {
     // DO THIS like always
     try {
       event.preventDefault()
@@ -38,10 +47,18 @@ export class CarsController {
         price: formElem.price.value,
         color: formElem.color.value,
         description: formElem.description.value,
-        img: formElem.img.value,
+        imgUrl: formElem.img.value,
         year: formElem.year.value,
       }
-      carsService.addCar(formData)
+      if (id == 'undefined') {
+        await carsService.addCar(formData)
+      } else {
+        formData.id = id
+        await carsService.editCar(formData)
+      }
+
+
+
 
       formElem.reset()
       // @ts-ignore
@@ -59,4 +76,51 @@ export class CarsController {
     // @ts-ignore
     bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidenav')).hide()
   }
+
+  openEditor(id) {
+    let car = ProxyState.cars.find(c => c.id == id)
+    if (!car) {
+      Pop.toast("Invalid Car Id", 'error')
+      return
+    }
+
+    document.getElementById('listing-modal-form-slot').innerHTML = getCarform(car)
+    // @ts-ignore
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('add-listing-modal')).show()
+  }
+
+
+  async removeCar(id) {
+    try {
+      if (await Pop.confirm()) {
+        await carsService.removeCar(id)
+      }
+    } catch (error) {
+      console.error(error)
+      Pop.toast(error.message, "error")
+    }
+  }
+
+
+
+  /// STRETCH GOALS
+  async search() {
+    try {
+      event.preventDefault()
+      /**@type {HTMLFormElement} */
+      // @ts-ignore
+      const formElem = event.target
+      let query = {
+        make: formElem["search-make"].value.split(', ')
+      }
+      debugger
+      await carsService.getAllCars(query)
+    } catch (error) {
+      // show this to the user
+      console.error('[Search Error]', error)
+      Pop.toast(error.message, 'error')
+    }
+
+  }
+
 }
